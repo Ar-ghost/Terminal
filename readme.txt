@@ -1,0 +1,1 @@
+This is an Terminal on Android which provide you power to control your computer by your android phone.--V1.0--the commend of shutdown and cancel.
