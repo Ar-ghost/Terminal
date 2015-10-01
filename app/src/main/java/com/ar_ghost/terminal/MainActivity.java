@@ -1,6 +1,8 @@
 package com.ar_ghost.terminal;
 
 import android.app.Activity;
+import android.net.DhcpInfo;
+import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.os.Looper;
 import android.util.Log;
@@ -21,6 +23,7 @@ import org.apache.http.protocol.HTTP;
 import org.apache.http.util.EntityUtils;
 
 import java.util.ArrayList;
+import java.util.Formatter;
 import java.util.List;
 
 
@@ -29,6 +32,7 @@ public class MainActivity extends Activity {
     Button btnShutdown;
     Button btnCancelSD;
     HttpClient httpClient;
+    WifiManager wifiManager;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -36,33 +40,40 @@ public class MainActivity extends Activity {
         btnShutdown=(Button)findViewById(R.id.btnShutdown);
         btnCancelSD=(Button)findViewById(R.id.btnCancelSD);
         httpClient=new DefaultHttpClient();
+
+        //获取wifi内目标主机
+        wifiManager=(WifiManager)getSystemService(WIFI_SERVICE);
+        DhcpInfo dhcpInfo=wifiManager.getDhcpInfo();
+        Log.i("all",dhcpInfo.toString());
+        //由于360建立wifi，所以网关地址即为目标主机地址
+        final String gatewayIp=intToIp(dhcpInfo.gateway);
+        Log.i("gatewayIp",gatewayIp);
+        final String desIp="http://"+gatewayIp+"/terminal.php";
+
         btnShutdown.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 new Thread() {
                     @Override
                     public void run() {
-                        try
-
-                        {
-                            HttpPost httpPost = new HttpPost("http://172.18.49.1/terminal.php");
+                        try {
+                            HttpPost httpPost = new HttpPost(desIp);
                             List<NameValuePair> pairs = new ArrayList<NameValuePair>();
                             pairs.add(new BasicNameValuePair("order", "shutdown"));
                             pairs.add(new BasicNameValuePair("passwd", "I_AM_ME"));
                             httpPost.setEntity(new UrlEncodedFormEntity(pairs, HTTP.UTF_8));
                             HttpResponse response = httpClient.execute(httpPost);
-                            if (response.getStatusLine().getStatusCode() == 200){
+                            if (response.getStatusLine().getStatusCode() == 200) {
                                 String msg = EntityUtils.toString(response.getEntity());
                                 Looper.prepare();
-                                if (msg .equals("0")) {
+                                if (msg.equals("0")) {
                                     Toast.makeText(MainActivity.this, "关机成功！系统将在一分钟内关机！", Toast.LENGTH_LONG).show();
                                 } else {
-                                    Toast.makeText(MainActivity.this, "出错！返回码："+msg, Toast.LENGTH_LONG).show();
+                                    Toast.makeText(MainActivity.this, "出错！返回码：" + msg, Toast.LENGTH_LONG).show();
                                 }
                                 Looper.loop();
                             }
-                        } catch (Exception e)
-                        {
+                        } catch (Exception e) {
                             e.printStackTrace();
                         }
                     }
@@ -77,7 +88,7 @@ public class MainActivity extends Activity {
                     @Override
                     public void run() {
                         try {
-                            HttpPost httpPost = new HttpPost("http://172.18.49.1/terminal.php");
+                            HttpPost httpPost = new HttpPost(desIp);
                             List<NameValuePair> pairs = new ArrayList<NameValuePair>();
                             pairs.add(new BasicNameValuePair("order", "cancelshutdown"));
                             pairs.add(new BasicNameValuePair("passwd", "I_AM_ME"));
@@ -105,6 +116,10 @@ public class MainActivity extends Activity {
 
     }
 
+    private String intToIp(int paramInt) {
+        return (paramInt & 0xFF) + "." + (0xFF & paramInt >> 8) + "." + (0xFF & paramInt >> 16) + "."
+                + (0xFF & paramInt >> 24);
+    }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
