@@ -1,3 +1,3 @@
+# Android terminal
 
-# An Terminal on Android provides control to your computer #
-
+My android practice app.
